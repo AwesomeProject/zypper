@@ -245,6 +245,63 @@ struct InstallResolvableReportReceiver : public zypp::callback::ReceiveReport<zy
   }
 };
 
+///////////////////////////////////////////////////////////////////
+/// \class FindFileConflictstReportReceive
+/// \brief
+///////////////////////////////////////////////////////////////////
+struct FindFileConflictstReportReceiver : public zypp::callback::ReceiveReport<zypp::target::FindFileConflictstReport>
+{
+  FindFileConflictstReportReceiver()
+  : _progressId( "fileconflict-check" )
+  // TranslatorExplanation A progressbar label.
+  , _progressLabel(_("Checking for file conflicts:") )\
+  {}
+
+  virtual void reportbegin()
+  {
+    Zypper::instance()->out().info( "+++++++++++++++++++++++" );
+    _progress.reset( new Out::ProgressBar( Zypper::instance()->out(), _progressLabel ) );
+  }
+
+  virtual bool start( const ProgressData & progress_r )
+  {
+    (*_progress)->set( progress_r );
+
+    return true;
+  }
+
+  virtual bool progress( const ProgressData & progress_r, unsigned noFilelist_r )
+  {
+    (*_progress)->set( progress_r );
+    return !Zypper::instance()->exitRequested();
+  }
+
+  virtual bool result( const ProgressData & progress_r, unsigned noFilelist_r, unsigned conflicts_r  )
+  {
+
+    (*_progress).error( "Action failed" );
+    return false;
+
+//     Zypper::instance()->out().progressEnd( _progressId, _progressLabel );
+//     Zypper::instance()->out().info( boost::format("FFC: %1% NOFL %3%/%2%") % conflicts_r % total_r % noFilelist_r );
+//     Zypper::instance()->out().warning( boost::format("FFC: %1% NOFL %3%/%2%") % conflicts_r % total_r % noFilelist_r );
+//     Zypper::instance()->out().error( boost::format("FFC: %1% NOFL %3%/%2%") % conflicts_r % total_r % noFilelist_r );
+//    std::cerr << conflicts_r << endl;
+    return ReportType::result( progress_r, noFilelist_r, conflicts_r );
+  }
+
+  virtual void reportend()
+  {
+    _progress.reset();
+    Zypper::instance()->out().info( "-----------------------" );
+  }
+
+private:
+  std::string	_progressId;
+  std::string	_progressLabel;
+  scoped_ptr<Out::ProgressBar>	_progress;
+};
+
 
 ///////////////////////////////////////////////////////////////////
 }; // namespace ZyppRecipients
@@ -257,6 +314,7 @@ class RpmCallbacks {
     ZmartRecipients::PatchScriptReportReceiver _scriptReceiver;
     ZmartRecipients::RemoveResolvableReportReceiver _installReceiver;
     ZmartRecipients::InstallResolvableReportReceiver _removeReceiver;
+    ZmartRecipients::FindFileConflictstReportReceiver _fileConflictsReceiver;
     int _step_counter;
 
   public:
@@ -267,6 +325,7 @@ class RpmCallbacks {
       _scriptReceiver.connect();
       _installReceiver.connect();
       _removeReceiver.connect();
+      _fileConflictsReceiver.connect();
     }
 
     ~RpmCallbacks()
@@ -275,6 +334,7 @@ class RpmCallbacks {
       _scriptReceiver.disconnect();
       _installReceiver.disconnect();
       _removeReceiver.disconnect();
+      _fileConflictsReceiver.disconnect();
     }
 };
 

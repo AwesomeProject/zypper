@@ -440,6 +440,10 @@ public:
   void error( const std::string & label_r )
   { _progress.name( label_r ); error( true ); }
 
+  /** \overload also change the progress bar label and disambiguate. */
+  void error( const char * label_r )
+  { _progress.name( label_r ); error( true ); }
+
   /** \overload also change the progress bar label. */
   void error( tribool error_r, const std::string & label_r )
   { _progress.name( label_r ); error( error_r ); }
